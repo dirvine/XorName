@@ -103,6 +103,12 @@ mod prefix;
 /// Constant byte length of `XorName`.
 pub const XOR_NAME_LEN: usize = 32;
 
+/// Error type not derived from std::Error
+pub enum Error {
+    /// Failed to serialise with bincode
+    SerializeFail,
+}
+
 /// A 256-bit number, viewed as a point in XOR space.
 ///
 /// This wraps an array of 32 bytes, i. e. a number between 0 and 2<sup>256</sup> - 1.
@@ -122,18 +128,17 @@ impl XorName {
         self[index as usize] & pow_i != 0
     }
 
-
     /// Get XorName from any type that implements Serialize
-    pub fn new<T: Serialize>(data: &T) -> Option<Self> {
-     let bytes = match bincode::serialize(data) {
-        Ok(bytes) => bytes,
-        Err(_) => return None,
-     };
-     let mut hash = [0;32];
-     let mut hasher = Sha3::v256();
-     hasher.update(&bytes);
-     hasher.finalize(&mut hash);
-     Some(XorName(hash))
+    pub fn new<T: Serialize>(data: &T) -> Result<Self, Error> {
+        let bytes = match bincode::serialize(data) {
+            Ok(bytes) => bytes,
+            Err(_) => return Err(Error::SerializeFail),
+        };
+        let mut hash = [0; 32];
+        let mut hasher = Sha3::v256();
+        hasher.update(&bytes);
+        hasher.finalize(&mut hash);
+        Ok(XorName(hash))
     }
 
     /// Compares the distance of the arguments to `self`. Returns `Less` if `lhs` is closer,
@@ -336,10 +341,10 @@ mod tests {
 
     #[test]
     fn test_new() {
-    let int = 0u8;
-    let int2 = 0u16;
-    assert!(XorName::new(&int).is_some());
-    assert!(XorName::new(&int2).is_some());
+        let int = 0u8;
+        let int2 = 0u16;
+        assert!(XorName::new(&int).is_ok());
+        assert!(XorName::new(&int2).is_ok());
     }
 
     #[test]
