@@ -123,7 +123,7 @@ impl XorName {
     }
 
 
-    /// Get XorName fomr any type that implements Serialize
+    /// Get XorName from any type that implements Serialize
     pub fn new<T: Serialize>(data: &T) -> Option<Self> {
      let bytes = match bincode::serialize(data) {
         Ok(bytes) => bytes,
