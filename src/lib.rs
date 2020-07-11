@@ -64,6 +64,8 @@ use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
+use tiny_keccak::{Hasher, Sha3};
+
 use serde::{Deserialize, Serialize};
 
 /// Creates XorName with the given leading bytes and the rest filled with zeroes.
@@ -118,6 +120,20 @@ impl XorName {
         let index = i / 8;
         let pow_i = 1 << (7 - (i % 8));
         self[index as usize] & pow_i != 0
+    }
+
+
+    /// Get XorName fomr any type that implements Serialize
+    pub fn new<T: Serialize>(data: &T) -> Option<Self> {
+     let bytes = match bincode::serialize(data) {
+        Ok(bytes) => bytes,
+        Err(_) => return None,
+     };
+     let mut hash = [0;32];
+     let mut hasher = Sha3::v256();
+     hasher.update(&bytes);
+     hasher.finalize(&mut hash);
+     Some(XorName(hash))
     }
 
     /// Compares the distance of the arguments to `self`. Returns `Less` if `lhs` is closer,
@@ -316,6 +332,14 @@ mod tests {
         assert_eq!(data.len(), XOR_NAME_LEN);
         let obj_after: XorName = deserialize(&data).unwrap();
         assert_eq!(obj_before, obj_after);
+    }
+
+    #[test]
+    fn test_new() {
+    let int = 0u8;
+    let int2 = 0u16;
+    assert!(XorName::new(&int).is_some());
+    assert!(XorName::new(&int2).is_some());
     }
 
     #[test]
